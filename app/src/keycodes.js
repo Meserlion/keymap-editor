@@ -9,9 +9,15 @@ export function loadKeycodes () {
 }
 
 function shortestAlias (aliases) {
-  return [...aliases]
+  const shortest = [...aliases]
     .sort((a, b) => a.length - b.length)[0]
-    .replace(/^KC_/, '')
+
+  // Explicitly handle KC_LGUI and KC_RGUI
+  if (shortest === 'KC_LGUI' || shortest === 'KC_RGUI') {
+    return '⌘';
+  }
+
+  return shortest.replace(/^KC_/, '')
 }
 
 function normalizeZmkKeycodes (keycodes) {
