@@ -830,7 +830,7 @@
   },
   {
     "names": ["LEFT_BRACKET", "LBKT"],
-    "symbol": "[",
+    "symbol": "å",
     "description": "[ [Left Bracket] and { [Left Brace]",
     "context": "Keyboard",
     "clarify": false,
@@ -955,7 +955,7 @@
   },
   {
     "names": ["SEMICOLON", "SEMI"],
-    "symbol": ";",
+    "symbol": "æ",
     "description": "; [Semicolon] and : [Colon]",
     "context": "Keyboard",
     "clarify": false,
@@ -986,7 +986,7 @@
   },
   {
     "names": ["SINGLE_QUOTE", "SQT", "APOSTROPHE", "APOS"],
-    "symbol": "'",
+    "symbol": "ø",
     "description": "' [Apostrophe] and \" [Quote (Double)]",
     "context": "Keyboard",
     "clarify": false,
@@ -1806,7 +1806,7 @@
     "footnotes": {}
   },
   {
-    "names": ["NON_US_BSLH", "NUBS"],
+    "names": ["NON_US_BSLH", "NUBS", "NON_US_BACKSLASH"],
     "symbol": "\\",
     "description": "Non-US \\ [Backslash] and | [Pipe]",
     "context": "Keyboard",
@@ -5476,6 +5476,60 @@
       "macos": null,
       "ios": null
     },
+    "footnotes": {}
+  },
+  {
+    "names": ["LA(LC(N7))"],
+    "symbol": "{",
+    "description": "{ Left Curly Brace (DK layout: AltGr+7)",
+    "context": "Keyboard",
+    "clarify": false,
+    "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
+    "footnotes": {}
+  },
+  {
+    "names": ["LA(LC(N8))"],
+    "symbol": "[",
+    "description": "[ Left Square Bracket (DK layout: AltGr+8)",
+    "context": "Keyboard",
+    "clarify": false,
+    "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
+    "footnotes": {}
+  },
+  {
+    "names": ["LA(LC(N9))"],
+    "symbol": "]",
+    "description": "] Right Square Bracket (DK layout: AltGr+9)",
+    "context": "Keyboard",
+    "clarify": false,
+    "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
+    "footnotes": {}
+  },
+  {
+    "names": ["LA(LC(N0))"],
+    "symbol": "}",
+    "description": "} Right Curly Brace (DK layout: AltGr+0)",
+    "context": "Keyboard",
+    "clarify": false,
+    "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
+    "footnotes": {}
+  },
+  {
+    "names": ["RS(NUMBER_8)"],
+    "symbol": "(",
+    "description": "( Left Parenthesis (DK layout: Shift+8)",
+    "context": "Keyboard",
+    "clarify": false,
+    "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
+    "footnotes": {}
+  },
+  {
+    "names": ["RS(N9)"],
+    "symbol": ")",
+    "description": ") Right Parenthesis (DK layout: Shift+9)",
+    "context": "Keyboard",
+    "clarify": false,
+    "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
     "footnotes": {}
   }
 ]
