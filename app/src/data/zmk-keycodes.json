@@ -1807,8 +1807,8 @@
   },
   {
     "names": ["NON_US_BSLH", "NUBS", "NON_US_BACKSLASH"],
-    "symbol": "\\",
-    "description": "Non-US \\ [Backslash] and | [Pipe]",
+    "symbol": "<",
+    "description": "< (DK layout: NUBS key between LShift and Z)",
     "context": "Keyboard",
     "clarify": false,
     "documentation": "https://usb.org/sites/default/files/hut1_2.pdf#page=86",
@@ -5527,6 +5527,15 @@
     "names": ["RS(N9)"],
     "symbol": ")",
     "description": ") Right Parenthesis (DK layout: Shift+9)",
+    "context": "Keyboard",
+    "clarify": false,
+    "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
+    "footnotes": {}
+  },
+  {
+    "names": ["LS(FSLH)"],
+    "symbol": "<",
+    "description": "< Less Than (DK layout: Shift+FSLH)",
     "context": "Keyboard",
     "clarify": false,
     "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
