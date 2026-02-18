@@ -43,13 +43,121 @@ function findKeymapFile () {
   return files.find(file => file.endsWith('.keymap'))
 }
 
+function extractKeymapBlock (source) {
+  const start = source.search(/\bkeymap\s*\{/)
+  if (start === -1) return null
+  let depth = 0
+  for (let i = start; i < source.length; i++) {
+    if (source[i] === '{') depth++
+    else if (source[i] === '}') {
+      if (--depth === 0) {
+        const end = source.indexOf(';', i) + 1
+        return { start, end, block: source.slice(start, end) }
+      }
+    }
+  }
+  return null
+}
+
+function mergeKeymapCode (existingContent, generatedCode) {
+  const existing = extractKeymapBlock(existingContent)
+  const generated = extractKeymapBlock(generatedCode)
+  if (!existing || !generated) return generatedCode
+  return existingContent.slice(0, existing.start) +
+    generated.block +
+    existingContent.slice(existing.end)
+}
+
+function loadMacros () {
+  const macrosPath = path.join(ZMK_PATH, 'config', 'macros.json')
+  if (!fs.existsSync(macrosPath)) return []
+  return JSON.parse(fs.readFileSync(macrosPath))
+}
+
+function generateMacrosDTS (macros) {
+  if (!macros || macros.length === 0) return null
+  const blocks = macros.map(macro => {
+    const name = macro.code.replace(/^&/, '')
+    return [
+      `        ${name}: ${name} {`,
+      `            compatible = "zmk,behavior-macro";`,
+      `            #binding-cells = <0>;`,
+      `            bindings =`,
+      `                <&macro_press>,`,
+      `                <&kp ${macro.modifier}>,`,
+      `                <&macro_tap>,`,
+      `                <&kp ${macro.key}>,`,
+      `                <&macro_release>,`,
+      `                <&kp ${macro.modifier}>;`,
+      `            label = "${name.toUpperCase()}";`,
+      `        };`
+    ].join('\n')
+  }).join('\n\n')
+  return `    macros {\n${blocks}\n    };`
+}
+
+function extractBlock (source, pattern) {
+  const start = source.search(pattern)
+  if (start === -1) return null
+  let depth = 0
+  for (let i = start; i < source.length; i++) {
+    if (source[i] === '{') depth++
+    else if (source[i] === '}') {
+      if (--depth === 0) {
+        const end = source.indexOf(';', i) + 1
+        return { start, end }
+      }
+    }
+  }
+  return null
+}
+
+function mergeMacrosInKeymap (content, macrosDTS) {
+  const existing = extractBlock(content, /\bmacros\s*\{/)
+  if (existing) {
+    return content.slice(0, existing.start) + macrosDTS + content.slice(existing.end)
+  }
+  // Insert before keymap block
+  const keymapPos = content.search(/\n[\t ]*keymap[\t ]*\{/)
+  if (keymapPos === -1) return content + '\n\n' + macrosDTS
+  return content.slice(0, keymapPos) + '\n\n' + macrosDTS + content.slice(keymapPos)
+}
+
+function exportMacros (macros, callback) {
+  const macrosPath = path.join(ZMK_PATH, 'config', 'macros.json')
+  fs.writeFileSync(macrosPath, JSON.stringify(macros, null, 2))
+
+  const keymapFile = findKeymapFile()
+  if (keymapFile) {
+    const keymapFilePath = path.join(ZMK_PATH, 'config', keymapFile)
+    if (fs.existsSync(keymapFilePath)) {
+      const existing = fs.readFileSync(keymapFilePath, 'utf8')
+      const macrosDTS = generateMacrosDTS(macros)
+      const updated = macrosDTS
+        ? mergeMacrosInKeymap(existing, macrosDTS)
+        : existing
+      fs.writeFileSync(keymapFilePath, updated)
+    }
+  }
+
+  return childProcess.execFile('git', ['status'], { cwd: ZMK_PATH }, callback)
+}
+
 function exportKeymap (generatedKeymap, flash, callback) {
   const keymapPath = path.join(ZMK_PATH, 'config')
   const keymapFile = findKeymapFile()
+  const keymapFilePath = path.join(keymapPath, keymapFile)
 
   fs.existsSync(keymapPath) || fs.mkdirSync(keymapPath)
   fs.writeFileSync(path.join(keymapPath, 'keymap.json'), generatedKeymap.json)
-  fs.writeFileSync(path.join(keymapPath, keymapFile), generatedKeymap.code)
+
+  const existingContent = fs.existsSync(keymapFilePath)
+    ? fs.readFileSync(keymapFilePath, 'utf8')
+    : null
+  const outputCode = existingContent
+    ? mergeKeymapCode(existingContent, generatedKeymap.code)
+    : generatedKeymap.code
+  fs.writeFileSync(keymapFilePath, outputCode)
 
   // Note: This isn't really helpful. In the QMK version I had this actually
   // calling `make` and piping the output in realtime but setting up a ZMK dev
@@ -64,5 +172,7 @@ module.exports = {
   loadKeycodes,
   loadLayout,
   loadKeymap,
-  exportKeymap
+  exportKeymap,
+  loadMacros,
+  exportMacros
 }

@@ -23,3 +23,16 @@ export function loadLayout() {
   return fetch(`${config.apiBaseUrl}/layout`)
     .then(response => response.json())
 }
+
+export function loadMacros() {
+  return fetch(`${config.apiBaseUrl}/macros`)
+    .then(response => response.json())
+}
+
+export function saveMacros(macros) {
+  return fetch(`${config.apiBaseUrl}/macros`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(macros)
+  })
+}

@@ -27,4 +27,15 @@ router.post('/keymap', (req, res) => {
   // })
 })
 
+router.get('/macros', (req, res) => res.json(zmk.loadMacros()))
+router.post('/macros', (req, res) => {
+  zmk.exportMacros(req.body, err => {
+    if (err) {
+      res.status(500).send(err)
+      return
+    }
+    res.send()
+  })
+})
+
 module.exports = router
