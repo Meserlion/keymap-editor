@@ -4,7 +4,7 @@ const path = require('path')
 const { parseKeymap } = require('./keymap')
 
 const ZMK_PATH = path.join(__dirname, '..', '..', '..', 'zmk-config')
-const KEYBOARD = 'dactyl'
+const KEYBOARD = 'totem'
 
 const EMPTY_KEYMAP = {
   keyboard: 'unknown',
@@ -24,7 +24,9 @@ function loadKeycodes() {
 
 function loadLayout (layout = 'LAYOUT') {
   const layoutPath = path.join(ZMK_PATH, 'config', 'info.json')
-  return JSON.parse(fs.readFileSync(layoutPath)).layouts[layout].layout
+  const fallbackPath = path.join(__dirname, '..', '..', '..', 'app', 'src', 'data', 'totem.json')
+  const source = fs.existsSync(layoutPath) ? layoutPath : fallbackPath
+  return JSON.parse(fs.readFileSync(source)).layouts[layout].layout
 }
 
 function loadKeymap () {

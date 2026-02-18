@@ -1,11 +1,12 @@
-import * as api from './api'
+import behaviors from './data/zmk-behaviors.json'
+import keycodes from './data/zmk-keycodes.json'
 
 export function loadBehaviours () {
-  return api.loadBehaviours()
+  return Promise.resolve(behaviors)
 }
 
 export function loadKeycodes () {
-  return api.loadKeycodes().then(normalizeZmkKeycodes)
+  return Promise.resolve(keycodes).then(normalizeZmkKeycodes)
 }
 
 function shortestAlias (aliases) {

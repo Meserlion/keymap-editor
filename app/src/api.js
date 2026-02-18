@@ -1,15 +1,17 @@
 import * as config from './config'
+import behaviors from './data/zmk-behaviors.json'
+import keycodes from './data/zmk-keycodes.json'
 
 export function healthcheck() {
   return fetch(`${config.apiBaseUrl}/health`)
 }
 
 export function loadBehaviours() {
-  return fetch(`${config.apiBaseUrl}/behaviors`).then(response => response.json())
+  return Promise.resolve(behaviors)
 }
 
 export function loadKeycodes() {
-  return fetch(`${config.apiBaseUrl}/keycodes`).then(response => response.json())
+  return Promise.resolve(keycodes)
 }
 
 export function loadKeymap() {

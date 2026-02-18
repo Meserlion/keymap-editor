@@ -19,7 +19,7 @@ function init (app) {
     })
   }
 
-  childProcess.execFile('npm', ['start'], opts, err => {
+  childProcess.execFile('npm', ['start'], { ...opts, shell: true }, err => {
     console.error(err)
     console.error('Application serving failed')
     process.exit(1)
