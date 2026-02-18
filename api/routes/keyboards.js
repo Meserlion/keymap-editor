@@ -30,10 +30,15 @@ router.post('/keymap', (req, res) => {
 router.get('/macros', (req, res) => res.json(zmk.loadMacros()))
 router.post('/macros', (req, res) => {
   zmk.exportMacros(req.body, err => {
-    if (err) {
-      res.status(500).send(err)
-      return
-    }
+    if (err) { res.status(500).send(err); return }
+    res.send()
+  })
+})
+
+router.get('/combos', (req, res) => res.json(zmk.loadCombos()))
+router.post('/combos', (req, res) => {
+  zmk.exportCombos(req.body, err => {
+    if (err) { res.status(500).send(err); return }
     res.send()
   })
 })

@@ -68,6 +68,61 @@ function mergeKeymapCode (existingContent, generatedCode) {
     existingContent.slice(existing.end)
 }
 
+function loadCombos () {
+  const combosPath = path.join(ZMK_PATH, 'config', 'combos.json')
+  if (!fs.existsSync(combosPath)) return []
+  return JSON.parse(fs.readFileSync(combosPath))
+}
+
+function generateCombosDTS (combos) {
+  if (!combos || combos.length === 0) return null
+  const blocks = combos.map(combo => {
+    const lines = [`        ${combo.name} {`]
+    if (combo.timeout) lines.push(`            timeout-ms = <${combo.timeout}>;`)
+    lines.push(`            key-positions = <${combo.positions.join(' ')}>;`)
+    lines.push(`            bindings = <${combo.binding}>;`)
+    if (combo.layers && combo.layers.length) lines.push(`            layers = <${combo.layers.join(' ')}>;`)
+    lines.push(`        };`)
+    return lines.join('\n')
+  }).join('\n\n')
+  return `    combos {\n        compatible = "zmk,combos";\n\n${blocks}\n    };`
+}
+
+function mergeCombosInKeymap (content, combosDTS) {
+  const existing = extractBlock(content, /\bcombos\s*\{/)
+  if (existing) {
+    return content.slice(0, existing.start) + combosDTS + content.slice(existing.end)
+  }
+  // Insert before macros block if present, otherwise before keymap block
+  const macrosPos = content.search(/\n[\t ]*macros[\t ]*\{/)
+  if (macrosPos !== -1) {
+    return content.slice(0, macrosPos) + '\n\n' + combosDTS + content.slice(macrosPos)
+  }
+  const keymapPos = content.search(/\n[\t ]*keymap[\t ]*\{/)
+  if (keymapPos === -1) return content + '\n\n' + combosDTS
+  return content.slice(0, keymapPos) + '\n\n' + combosDTS + content.slice(keymapPos)
+}
+
+function exportCombos (combos, callback) {
+  const combosPath = path.join(ZMK_PATH, 'config', 'combos.json')
+  fs.writeFileSync(combosPath, JSON.stringify(combos, null, 2))
+
+  const keymapFile = findKeymapFile()
+  if (keymapFile) {
+    const keymapFilePath = path.join(ZMK_PATH, 'config', keymapFile)
+    if (fs.existsSync(keymapFilePath)) {
+      const existing = fs.readFileSync(keymapFilePath, 'utf8')
+      const combosDTS = generateCombosDTS(combos)
+      const updated = combosDTS
+        ? mergeCombosInKeymap(existing, combosDTS)
+        : existing
+      fs.writeFileSync(keymapFilePath, updated)
+    }
+  }
+
+  return childProcess.execFile('git', ['status'], { cwd: ZMK_PATH }, callback)
+}
+
 function loadMacros () {
   const macrosPath = path.join(ZMK_PATH, 'config', 'macros.json')
   if (!fs.existsSync(macrosPath)) return []
@@ -174,5 +229,7 @@ module.exports = {
   loadKeymap,
   exportKeymap,
   loadMacros,
-  exportMacros
+  exportMacros,
+  loadCombos,
+  exportCombos
 }

@@ -6,10 +6,11 @@ import * as config from './config'
 import './App.css';
 import { DefinitionsContext } from './providers'
 import { loadKeycodes } from './keycodes'
-import { loadBehaviours, loadKeymap, loadMacros, saveMacros } from './api'
+import { loadBehaviours, loadKeymap, loadMacros, saveMacros, loadCombos, saveCombos } from './api'
 import Keyboard from './Keyboard/Keyboard'
 import Loader from './Common/Loader'
 import MacroEditor from './Macros/MacroEditor'
+import ComboEditor from './Macros/ComboEditor'
 import layoutData from './data/totem.json'
 import defaultKeymap from './data/totem.keymap.json'
 import { parseKeymap } from './keymap'
@@ -19,6 +20,7 @@ const layout = layoutData.layouts.LAYOUT.layout
 function App() {
   const [baseDefinitions, setBaseDefinitions] = useState(null)
   const [macros, setMacros] = useState([])
+  const [combos, setCombos] = useState([])
   const [editingKeymap, setEditingKeymap] = useState(null)
 
   // Merge macro behaviors into the definitions so they appear in the picker
@@ -41,7 +43,8 @@ function App() {
   }, [baseDefinitions, macros])
 
   async function handleCompile() {
-    // Save macros first (updates .keymap macros block), then save keymap
+    // Save in order: combos → macros → keymap (each replaces its block in .keymap)
+    await saveCombos(combos)
     await saveMacros(macros)
     await fetch(`${config.apiBaseUrl}/keymap`, {
       method: 'POST',
@@ -52,10 +55,11 @@ function App() {
 
   const initialize = useMemo(() => {
     return async function () {
-      const [keycodes, behaviours, loadedMacros] = await Promise.all([
+      const [keycodes, behaviours, loadedMacros, loadedCombos] = await Promise.all([
         loadKeycodes(),
         loadBehaviours(),
-        loadMacros()
+        loadMacros(),
+        loadCombos()
       ])
 
       keycodes.indexed = keyBy(keycodes, 'code')
@@ -63,6 +67,7 @@ function App() {
 
       setBaseDefinitions({ keycodes, behaviours })
       setMacros(loadedMacros)
+      setCombos(loadedCombos)
 
       try {
         const savedKeymap = await loadKeymap()
@@ -99,6 +104,7 @@ function App() {
           )}
         </DefinitionsContext.Provider>
         <MacroEditor macros={macros} onUpdate={setMacros} />
+        <ComboEditor combos={combos} onUpdate={setCombos} />
       </Loader>
     </>
   );

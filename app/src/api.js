@@ -36,3 +36,16 @@ export function saveMacros(macros) {
     body: JSON.stringify(macros)
   })
 }
+
+export function loadCombos() {
+  return fetch(`${config.apiBaseUrl}/combos`)
+    .then(response => response.json())
+}
+
+export function saveCombos(combos) {
+  return fetch(`${config.apiBaseUrl}/combos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(combos)
+  })
+}
