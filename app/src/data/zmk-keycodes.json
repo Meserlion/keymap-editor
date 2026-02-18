@@ -5534,8 +5534,8 @@
   },
   {
     "names": ["LS(FSLH)"],
-    "symbol": "<",
-    "description": "< Less Than (DK layout: Shift+FSLH)",
+    "symbol": "_",
+    "description": "_ Underscore (DK layout: Shift+FSLH)",
     "context": "Keyboard",
     "clarify": false,
     "os": { "windows": true, "linux": true, "android": true, "macos": true, "ios": true },
