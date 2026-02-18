@@ -198,5 +198,11 @@
     "code": "&none",
     "name": "None",
     "params": []
+  },
+  {
+    "code": "&kp_dk_BLSH",
+    "name": "DK Backslash",
+    "symbol": "\\",
+    "params": []
   }
 ]
