@@ -1,5 +1,4 @@
 import * as config from './config'
-import behaviors from './data/zmk-behaviors.json'
 import keycodes from './data/zmk-keycodes.json'
 
 export function healthcheck() {
@@ -7,7 +6,8 @@ export function healthcheck() {
 }
 
 export function loadBehaviours() {
-  return Promise.resolve(behaviors)
+  return fetch(`${config.apiBaseUrl}/behaviors`)
+    .then(response => response.json())
 }
 
 export function loadKeycodes() {

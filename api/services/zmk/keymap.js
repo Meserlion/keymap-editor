@@ -190,9 +190,19 @@ function validateKeymapJson(keymap) {
           }
 
           const expectedParams = behaviour.params || []
-          if (params.length !== expectedParams.length) {
+          const commandsByCode = keyBy(behaviour.commands || [], 'code')
+
+          // Calculate total expected params including additionalParams for commands
+          let totalExpected = expectedParams.length
+          if (expectedParams[0] === 'command' && params[0]) {
+            const cmdCode = typeof params[0] === 'string' ? params[0] : params[0].value
+            const cmd = commandsByCode[cmdCode]
+            totalExpected += (cmd && cmd.additionalParams ? cmd.additionalParams.length : 0)
+          }
+
+          if (params.length !== totalExpected) {
             errors.push(
-              `Key bind at "${keyPath}" (${bindCode}) expects ${expectedParams.length} param(s), got ${params.length}`
+              `Key bind at "${keyPath}" (${bindCode}) expects ${totalExpected} param(s), got ${params.length}`
             )
             continue
           }

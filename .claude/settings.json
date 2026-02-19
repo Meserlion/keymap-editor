@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start)",
+      "Bash(node_modules/.bin/react-scripts build:*)",
+      "Bash(powershell -command:*)",
+      "Bash(node_modules/.bin/cross-env ENABLE_DEV_SERVER=true node index.js)",
+      "Bash(python -c:*)"
+    ]
+  }
+}

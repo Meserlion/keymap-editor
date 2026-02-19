@@ -1,5 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useContext, useRef } from 'react'
 import MiniKeyboard from './MiniKeyboard'
+import Modal from '../Common/Modal'
+import ValuePicker from '../ValuePicker'
+import { DefinitionsContext } from '../providers'
 
 function getBindingLabel(binding, macros) {
   if (!binding) return ''
@@ -111,8 +114,13 @@ const styles = {
 const EMPTY_FORM = { name: '', positions: [], binding: '', timeout: '', layers: [] }
 
 function ComboEditor({ combos, onUpdate, layers = [], bindings = [], macros = [] }) {
+  const definitions = useContext(DefinitionsContext)
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [pickerStep, setPickerStep] = useState(null) // null | 'behaviour' | 'param' | 'param2'
+  const [pendingBehaviour, setPendingBehaviour] = useState(null)
+  const [pendingParam1, setPendingParam1] = useState(null)
+  const bindingBtnRef = useRef(null)
 
   const labels = useMemo(
     () => bindings.map(b => getBindingLabel(b, macros)),
@@ -150,6 +158,60 @@ function ComboEditor({ combos, onUpdate, layers = [], bindings = [], macros = []
   function handleRemove(name) {
     onUpdate(combos.filter(c => c.name !== name))
   }
+
+  function closePicker() {
+    setPickerStep(null)
+    setPendingBehaviour(null)
+    setPendingParam1(null)
+  }
+
+  function handleSelectBehaviour(b) {
+    if (!b.params || b.params.length === 0) {
+      setForm(f => ({ ...f, binding: b.code }))
+      setPickerStep(null)
+    } else {
+      setPendingBehaviour(b)
+      setPickerStep('param')
+    }
+  }
+
+  function handleSelectParam(result) {
+    if (pendingBehaviour.params.length === 1) {
+      setForm(f => ({ ...f, binding: `${pendingBehaviour.code} ${result.code}` }))
+      closePicker()
+    } else {
+      setPendingParam1(result.code)
+      setPickerStep('param2')
+    }
+  }
+
+  function handleSelectParam2(result) {
+    setForm(f => ({ ...f, binding: `${pendingBehaviour.code} ${pendingParam1} ${result.code}` }))
+    closePicker()
+  }
+
+  const stepChoices = useMemo(() => {
+    if (!definitions) return []
+    if (pickerStep === 'behaviour') return definitions.behaviours
+    if (!pendingBehaviour) return []
+    const paramType = pickerStep === 'param2' ? pendingBehaviour.params[1] : pendingBehaviour.params[0]
+    if (paramType === 'code' || paramType === 'mod') return definitions.keycodes
+    if (paramType === 'layer') return layers.map((name, i) => ({ code: String(i), description: name }))
+    if (paramType === 'command') return pendingBehaviour.commands || []
+    return []
+  }, [pickerStep, pendingBehaviour, definitions, layers])
+
+  const stepPrompt = useMemo(() => {
+    if (pickerStep === 'behaviour') return 'Select behavior'
+    if (!pendingBehaviour) return ''
+    const paramType = pickerStep === 'param2' ? pendingBehaviour.params[1] : pendingBehaviour.params[0]
+    const label = { code: 'keycode', mod: 'modifier', layer: 'layer', command: 'command' }
+    return `${pendingBehaviour.code}: select ${label[paramType] || paramType}`
+  }, [pickerStep, pendingBehaviour])
+
+  const pickerOnSelect = pickerStep === 'param2' ? handleSelectParam2
+    : pickerStep === 'param' ? handleSelectParam
+    : handleSelectBehaviour
 
   function field(label, key, placeholder, width) {
     return (
@@ -232,7 +294,16 @@ function ComboEditor({ combos, onUpdate, layers = [], bindings = [], macros = []
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {field('Name', 'name', 'e.g. combo_esc', '140px')}
-            {field('Binding', 'binding', 'e.g. &kp ESC', '140px')}
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={styles.label}>Binding</span>
+              <button
+                ref={bindingBtnRef}
+                style={{ ...styles.input, width: '140px', textAlign: 'left', cursor: 'pointer' }}
+                onClick={() => setPickerStep('behaviour')}
+              >
+                {form.binding || <span style={{ color: '#777' }}>Pick binding…</span>}
+              </button>
+            </label>
             {field('Timeout ms (optional)', 'timeout', 'e.g. 50', '100px')}
             {layers.length > 1 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -257,6 +328,21 @@ function ComboEditor({ combos, onUpdate, layers = [], bindings = [], macros = []
             </div>
           </div>
         </div>
+      )}
+
+      {pickerStep && definitions && (
+        <Modal>
+          <ValuePicker
+            target={bindingBtnRef.current || document.body}
+            value={form.binding}
+            param={pickerStep}
+            choices={stepChoices}
+            prompt={stepPrompt}
+            searchKey="code"
+            onSelect={pickerOnSelect}
+            onCancel={closePicker}
+          />
+        </Modal>
       )}
     </div>
   )

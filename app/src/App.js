@@ -1,8 +1,7 @@
 import '@fortawesome/fontawesome-free/css/all.css'
 import keyBy from 'lodash/keyBy'
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
-import * as config from './config'
 import './App.css';
 import { DefinitionsContext } from './providers'
 import { loadKeycodes } from './keycodes'
@@ -65,10 +64,12 @@ function App() {
 
   const canUndoRef = useRef(false)
   const canRedoRef = useRef(false)
+  const handleCompileRef = useRef(null)
   canUndoRef.current = canUndo
   canRedoRef.current = canRedo
 
   const importRef = useRef(null)
+  const toastTimer = useRef(null)
 
   const [isDirty, setIsDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -76,10 +77,11 @@ function App() {
   const [toast, setToast] = useState(null)
   const [pushOutput, setPushOutput] = useState(null)
 
-  function showToast(message, type = 'error') {
+  const showToast = useCallback((message, type = 'error') => {
+    clearTimeout(toastTimer.current)
     setToast({ message, type })
-    setTimeout(() => setToast(null), 4000)
-  }
+    toastTimer.current = setTimeout(() => setToast(null), 4000)
+  }, [])
 
   useEffect(() => {
     const handler = e => {
@@ -96,7 +98,10 @@ function App() {
     function handleKeydown(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
       const mod = e.ctrlKey || e.metaKey
-      if (mod && e.key === 'z' && !e.shiftKey) {
+      if (mod && e.key === 's') {
+        e.preventDefault()
+        handleCompileRef.current?.()
+      } else if (mod && e.key === 'z' && !e.shiftKey) {
         if (!canUndoRef.current) return
         e.preventDefault()
         dispatch({ type: 'UNDO' })
@@ -144,6 +149,7 @@ function App() {
       setSaving(false)
     }
   }
+  handleCompileRef.current = handleCompile
 
   async function handlePush() {
     setPushing(true)
@@ -191,51 +197,59 @@ function App() {
     e.target.value = ''
   }
 
-  const initialize = useMemo(() => {
-    return async function () {
-      const [keycodes, behaviours, loadedMacros, loadedCombos, aliases] = await Promise.all([
-        loadKeycodes(),
-        loadBehaviours(),
-        loadMacros(),
-        loadCombos(),
-        loadAliases()
-      ])
+  const initialize = useCallback(async () => {
+    const [keycodes, behaviours, loadedMacros, loadedCombos, aliases] = await Promise.all([
+      loadKeycodes(),
+      loadBehaviours(),
+      loadMacros(),
+      loadCombos(),
+      loadAliases()
+    ])
 
-      const allKeycodes = [...keycodes, ...aliases]
-      allKeycodes.indexed = keyBy(allKeycodes, 'code')
-      behaviours.indexed = keyBy(behaviours, 'code')
+    const allKeycodes = [...keycodes, ...aliases]
+    allKeycodes.indexed = keyBy(allKeycodes, 'code')
+    behaviours.indexed = keyBy(behaviours, 'code')
 
-      setBaseDefinitions({ keycodes: allKeycodes, behaviours })
-      setMacros(loadedMacros)
-      setCombos(loadedCombos)
+    setBaseDefinitions({ keycodes: allKeycodes, behaviours })
+    setMacros(loadedMacros)
+    setCombos(loadedCombos)
 
-      try {
-        const savedKeymap = await loadKeymap()
-        if (savedKeymap && savedKeymap.layers && savedKeymap.layers[0] && savedKeymap.layers[0].length > 0) {
-          dispatch({ type: 'SET_INITIAL', keymap: savedKeymap })
-        } else {
-          dispatch({ type: 'SET_INITIAL', keymap: parseKeymap(defaultKeymap) })
-        }
-      } catch (e) {
+    try {
+      const savedKeymap = await loadKeymap()
+      if (savedKeymap && savedKeymap.layers && savedKeymap.layers[0] && savedKeymap.layers[0].length > 0) {
+        dispatch({ type: 'SET_INITIAL', keymap: savedKeymap })
+      } else {
         dispatch({ type: 'SET_INITIAL', keymap: parseKeymap(defaultKeymap) })
       }
+    } catch (e) {
+      dispatch({ type: 'SET_INITIAL', keymap: parseKeymap(defaultKeymap) })
     }
   }, [])
 
-  const handleUpdateKeymap = useMemo(() => function(keymap) {
+  const handleUpdateKeymap = useCallback((keymap) => {
     dispatch({ type: 'UPDATE', keymap })
     setIsDirty(true)
   }, [])
 
-  function handleUpdateMacros(newMacros) {
+  const handleUndo = useCallback(() => {
+    dispatch({ type: 'UNDO' })
+    setIsDirty(true)
+  }, [])
+
+  const handleRedo = useCallback(() => {
+    dispatch({ type: 'REDO' })
+    setIsDirty(true)
+  }, [])
+
+  const handleUpdateMacros = useCallback((newMacros) => {
     setMacros(newMacros)
     setIsDirty(true)
-  }
+  }, [])
 
-  function handleUpdateCombos(newCombos) {
+  const handleUpdateCombos = useCallback((newCombos) => {
     setCombos(newCombos)
     setIsDirty(true)
-  }
+  }, [])
 
   return (
     <>
@@ -245,13 +259,13 @@ function App() {
           <button
             className="action-btn-sm"
             disabled={!canUndo}
-            onClick={() => { dispatch({ type: 'UNDO' }); setIsDirty(true) }}
+            onClick={handleUndo}
             title="Undo (Ctrl+Z)"
           >↩</button>
           <button
             className="action-btn-sm"
             disabled={!canRedo}
-            onClick={() => { dispatch({ type: 'REDO' }); setIsDirty(true) }}
+            onClick={handleRedo}
             title="Redo (Ctrl+Y)"
           >↪</button>
           <button
