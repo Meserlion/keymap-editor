@@ -222,6 +222,59 @@ function exportKeymap (generatedKeymap, flash, callback) {
   return childProcess.execFile('git', ['status'], { cwd: ZMK_PATH }, callback)
 }
 
+const ALIAS_SUFFIX_TO_SYMBOL = {
+  plus: '+', minus: '-', astrk: '*', qmark: '?', caret: '^', equal: '=',
+  lpar: '(', rpar: ')', flsh: '/', sqt: "'", dqt: '"', dllr: '$',
+  excl: '!', hash: '#', amp: '&', pipe: '|', lt: '<', gt: '>', dot: '.', comma: ','
+}
+
+function aliasSymbol (name) {
+  const suffix = name.split('_').slice(1).join('_').toLowerCase()
+  return ALIAS_SUFFIX_TO_SYMBOL[suffix] || name
+}
+
+function loadAliases () {
+  const aliasPath = path.join(ZMK_PATH, 'aliases.h')
+  if (!fs.existsSync(aliasPath)) return []
+  return fs.readFileSync(aliasPath, 'utf8')
+    .split('\n')
+    .map(line => line.match(/^#define\s+(\w+)\s+(\w+)/))
+    .filter(Boolean)
+    .map(m => ({
+      code: m[1],
+      aliases: [m[1]],
+      description: `${m[1]} (→ ${m[2]})`,
+      context: 'Alias',
+      symbol: aliasSymbol(m[1]),
+      params: [],
+      isModifier: false
+    }))
+}
+
+function getActionsUrl () {
+  try {
+    const raw = childProcess
+      .execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: ZMK_PATH })
+      .toString().trim()
+    const url = raw
+      .replace(/^git@github\.com:/, 'https://github.com/')
+      .replace(/\.git$/, '')
+    return url.includes('github.com') ? `${url}/actions` : null
+  } catch {
+    return null
+  }
+}
+
+function gitCommitPush (callback) {
+  const date = new Date().toISOString().slice(0, 16).replace('T', ' ')
+  const message = `Update keymap ${date}`
+  childProcess.exec(
+    `git add -A && git commit -m "${message}" && git push`,
+    { cwd: ZMK_PATH },
+    callback
+  )
+}
+
 module.exports = {
   loadBehaviors,
   loadKeycodes,
@@ -231,5 +284,8 @@ module.exports = {
   loadMacros,
   exportMacros,
   loadCombos,
-  exportCombos
+  exportCombos,
+  loadAliases,
+  getActionsUrl,
+  gitCommitPush
 }

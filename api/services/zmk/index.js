@@ -1,6 +1,8 @@
 const {
   parseKeyBinding,
-  generateKeymap
+  generateKeymap,
+  validateKeymapJson,
+  KeymapValidationError
 } = require('./keymap')
 
 const {
@@ -12,12 +14,17 @@ const {
   loadMacros,
   exportMacros,
   loadCombos,
-  exportCombos
+  exportCombos,
+  loadAliases,
+  getActionsUrl,
+  gitCommitPush
 } = require('./local-source')
 
 module.exports = {
   parseKeyBinding,
   generateKeymap,
+  validateKeymapJson,
+  KeymapValidationError,
   loadBehaviors,
   loadKeycodes,
   loadLayout,
@@ -26,5 +33,8 @@ module.exports = {
   loadMacros,
   exportMacros,
   loadCombos,
-  exportCombos
+  exportCombos,
+  loadAliases,
+  getActionsUrl,
+  gitCommitPush
 }

@@ -164,16 +164,51 @@ function validateKeymapJson(keymap) {
           const key = layer[j]
           const keyPath = `layers[${i}][${j}]`
 
-          if (typeof key !== 'string') {
-            errors.push(`Value at "${keyPath}" must be a string`)
+          // Accept both string bindings ("&kp A") and parsed objects ({value, params})
+          let bindCode, params
+          if (typeof key === 'string') {
+            const m = key.match(/^(&\S+)/)
+            bindCode = m && m[1]
+            params = bindCode ? parseKeyBinding(key).params : []
+          } else if (typeof key === 'object' && key !== null && key.value) {
+            bindCode = key.value
+            params = key.params || []
           } else {
-            const bind = key.match(/^&.+?\b/)
-            if (!(bind && bind[0] in behavioursByBind)) {
-              errors.push(`Key bind at "${keyPath}" has invalid behaviour`)
-            }
+            errors.push(`Value at "${keyPath}" has invalid format`)
+            continue
           }
 
-          // TODO: validate remaining bind parameters
+          if (!bindCode) {
+            errors.push(`Value at "${keyPath}" has invalid format`)
+            continue
+          }
+
+          const behaviour = behavioursByBind[bindCode]
+          if (!behaviour) {
+            // Unknown behavior — likely a user-defined macro, skip param validation
+            continue
+          }
+
+          const expectedParams = behaviour.params || []
+          if (params.length !== expectedParams.length) {
+            errors.push(
+              `Key bind at "${keyPath}" (${bindCode}) expects ${expectedParams.length} param(s), got ${params.length}`
+            )
+            continue
+          }
+
+          // Validate command params
+          for (let k = 0; k < expectedParams.length; k++) {
+            if (expectedParams[k] === 'command' && params[k]) {
+              const cmdCode = typeof params[k] === 'string' ? params[k] : params[k].value
+              const validCmds = (behaviour.commands || []).map(c => c.code)
+              if (cmdCode && !validCmds.includes(cmdCode)) {
+                errors.push(
+                  `Key bind at "${keyPath}" has unknown command "${cmdCode}" for ${bindCode}`
+                )
+              }
+            }
+          }
         }
       }
     }

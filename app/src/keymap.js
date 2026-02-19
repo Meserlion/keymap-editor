@@ -26,6 +26,21 @@ function parseKeyBinding(binding) {
   return { value, params }
 }
 
+function encodeBindValue(parsed) {
+  const params = (parsed.params || []).map(encodeBindValue)
+  const paramString = params.length > 0 ? `(${params.join(',')})` : ''
+  return parsed.value + paramString
+}
+
+export function encodeKeyBinding(parsed) {
+  const { value, params } = parsed
+  return `${value} ${params.map(encodeBindValue).join(' ')}`.trim()
+}
+
+export function encodeKeymap(keymap) {
+  return { ...keymap, layers: keymap.layers.map(layer => layer.map(encodeKeyBinding)) }
+}
+
 export function getBehaviourParams(parsedParams, behaviour) {
   if (!behaviour) return []
   const firstParsedParam = get(parsedParams, '[0]', {})
