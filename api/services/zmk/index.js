@@ -2,6 +2,8 @@ const {
   parseKeyBinding,
   generateKeymap,
   validateKeymapJson,
+  validateMacrosJson,
+  validateCombosJson,
   KeymapValidationError
 } = require('./keymap')
 
@@ -24,6 +26,8 @@ module.exports = {
   parseKeyBinding,
   generateKeymap,
   validateKeymapJson,
+  validateMacrosJson,
+  validateCombosJson,
   KeymapValidationError,
   loadBehaviors,
   loadKeycodes,

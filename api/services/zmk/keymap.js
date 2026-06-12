@@ -49,11 +49,11 @@ function getBehavioursUsed(keymap) {
  * @param {String} binding
  * @returns {Object}
  */
-const COMPOUND_KEYCODES = new Set([
-  'LA(LC(N7))', 'LA(LC(N8))', 'LA(LC(N9))', 'LA(LC(N0))',
-  'RS(NUMBER_8)', 'RS(N9)',
-  'LS(FSLH)'
-])
+// Shared with the frontend parser — keep a single list so both sides treat
+// the same codes as atomic. See app/src/keymap.js.
+const COMPOUND_KEYCODES = new Set(
+  require('../../../app/src/data/compound-keycodes.json')
+)
 
 function parseKeyBinding(binding) {
   const paramsPattern = /\((.+)\)/
@@ -229,10 +229,92 @@ function validateKeymapJson(keymap) {
   }
 }
 
+// Names and bindings are interpolated directly into devicetree source, so
+// reject anything that would only fail later in the firmware build.
+const DTS_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+const BINDING_PATTERN = /^&[a-zA-Z_][a-zA-Z0-9_]*(\s+[a-zA-Z0-9_()]+)*$/
+
+function validateMacrosJson (macros) {
+  const errors = []
+
+  if (!Array.isArray(macros)) {
+    errors.push('macros.json root must be an array')
+  } else {
+    const seen = new Set()
+    macros.forEach((macro, i) => {
+      if (typeof macro !== 'object' || macro === null) {
+        errors.push(`Macro at [${i}] must be an object`)
+        return
+      }
+      const name = String(macro.code || '').replace(/^&/, '')
+      if (!DTS_NAME_PATTERN.test(name)) {
+        errors.push(`Macro at [${i}] has invalid code "${macro.code}" (letters, digits and _ only)`)
+      }
+      if (seen.has(macro.code)) {
+        errors.push(`Macro at [${i}] has duplicate code "${macro.code}"`)
+      }
+      seen.add(macro.code)
+      for (const field of ['modifier', 'key']) {
+        if (!DTS_NAME_PATTERN.test(String(macro[field] || ''))) {
+          errors.push(`Macro at [${i}] has invalid ${field} "${macro[field]}"`)
+        }
+      }
+    })
+  }
+
+  if (errors.length) {
+    throw new KeymapValidationError(errors)
+  }
+}
+
+function validateCombosJson (combos) {
+  const errors = []
+
+  if (!Array.isArray(combos)) {
+    errors.push('combos.json root must be an array')
+  } else {
+    const seen = new Set()
+    combos.forEach((combo, i) => {
+      if (typeof combo !== 'object' || combo === null) {
+        errors.push(`Combo at [${i}] must be an object`)
+        return
+      }
+      if (!DTS_NAME_PATTERN.test(String(combo.name || ''))) {
+        errors.push(`Combo at [${i}] has invalid name "${combo.name}" (letters, digits and _ only)`)
+      }
+      if (seen.has(combo.name)) {
+        errors.push(`Combo at [${i}] has duplicate name "${combo.name}"`)
+      }
+      seen.add(combo.name)
+      if (!Array.isArray(combo.positions) || combo.positions.length === 0 ||
+          !combo.positions.every(p => Number.isInteger(p) && p >= 0)) {
+        errors.push(`Combo at [${i}] must have a non-empty "positions" array of key indexes`)
+      }
+      if (!BINDING_PATTERN.test(String(combo.binding || ''))) {
+        errors.push(`Combo at [${i}] has invalid binding "${combo.binding}"`)
+      }
+      if (combo.timeout !== undefined && !(Number.isInteger(combo.timeout) && combo.timeout > 0)) {
+        errors.push(`Combo at [${i}] has invalid timeout "${combo.timeout}"`)
+      }
+      if (combo.layers !== undefined &&
+          (!Array.isArray(combo.layers) || !combo.layers.every(l => Number.isInteger(l) && l >= 0))) {
+        errors.push(`Combo at [${i}] has invalid "layers" array`)
+      }
+    })
+  }
+
+  if (errors.length) {
+    throw new KeymapValidationError(errors)
+  }
+}
+
 module.exports = {
   KeymapValidationError,
   encodeKeymap,
+  parseKeyBinding,
   parseKeymap,
   generateKeymap,
-  validateKeymapJson
+  validateKeymapJson,
+  validateMacrosJson,
+  validateCombosJson
 }

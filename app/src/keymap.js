@@ -1,17 +1,13 @@
 import get from 'lodash/get'
 import keyBy from 'lodash/keyBy'
+import compoundKeycodes from './data/compound-keycodes.json'
 export { loadKeymap } from './api'
 
 export function parseKeymap(keymap) {
   return { ...keymap, layers: keymap.layers.map(layer => layer.map(parseKeyBinding)) }
 }
 
-const COMPOUND_KEYCODES = new Set([
-  'LA(LC(N7))', 'LA(LC(N8))', 'LA(LC(N9))', 'LA(LC(N0))',
-  'LA(LC(NUMBER_2))', 'LA(LC(HASH))', 'LC(LA(DLLR))',
-  'RS(NUMBER_8)', 'RS(N9)',
-  'LS(FSLH)'
-])
+const COMPOUND_KEYCODES = new Set(compoundKeycodes)
 
 function parseKeyBinding(binding) {
   const paramsPattern = /\((.+)\)/

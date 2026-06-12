@@ -29,13 +29,21 @@ export function loadMacros() {
     .then(response => response.json())
 }
 
+async function throwSaveError(res, what) {
+  if (res.status === 400) {
+    const body = await res.json().catch(() => ({}))
+    if (body.errors) throw new Error(body.errors.join('\n'))
+  }
+  throw new Error(`Failed to save ${what} (${res.status})`)
+}
+
 export async function saveMacros(macros) {
   const res = await fetch(`${config.apiBaseUrl}/macros`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(macros)
   })
-  if (!res.ok) throw new Error(`Failed to save macros (${res.status})`)
+  if (!res.ok) await throwSaveError(res, 'macros')
 }
 
 export function loadAliases() {
@@ -54,7 +62,7 @@ export async function saveCombos(combos) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(combos)
   })
-  if (!res.ok) throw new Error(`Failed to save combos (${res.status})`)
+  if (!res.ok) await throwSaveError(res, 'combos')
 }
 
 export async function saveKeymap(keymap) {
