@@ -47,5 +47,22 @@ The frontend fetches behaviors at runtime via `GET /behaviors` — there is no f
 **Do NOT change `revision` back to `main`** — ZMK main (post-Dec 2025) has a regression that breaks BT advertising on the Totem/XIAO BLE. The keyboard boots and works over USB but never appears in the BT device list.
 Working firmware is also stored in `D:/Programs/keymap-editor/working/` as a backup.
 
+### CI build workflow is vendored — and must stay in sync with the west.yml pin
+`zmk-config-totem/.github/workflows/build-user-config.yml` is a **vendored copy** of ZMK's
+reusable workflow at the same `fee2404d` revision, with only the GitHub Actions versions
+changed (checkout v7, cache v6, upload-artifact v7) to get off the deprecated Node 20 runtime.
+`build.yml` calls it locally via `uses: ./.github/workflows/build-user-config.yml`.
+
+**Do not replace it with `uses: zmkfirmware/zmk/...@<newer sha>` while `west.yml` stays pinned.**
+Upstream added a `Check if building a board without explicit ZMK compat` step on 2026-03-03,
+before all of its action bumps (2026-03-19 onward), so no upstream revision has Node 24 actions
+without that step. It reads `CONFIG_ZMK_BOARD_COMPAT`, which `fee2404d` predates, and its
+`west boards ... | grep zmk` runs under `bash -e` outside a condition — so on `xiao_ble`
+(qualifiers `nrf52840`) it aborts the job instead of warning. This was tried: firmware compiled,
+then both build jobs failed.
+
+Un-vendor only once `west.yml` moves to a ZMK revision that sets `CONFIG_ZMK_BOARD_COMPAT`,
+or `build.yaml` selects a ZMK board variant.
+
 ## Totem Layout Source
 `https://raw.githubusercontent.com/nickcoutsos/keymap-editor-contrib/main/keyboard-data/totem.json`

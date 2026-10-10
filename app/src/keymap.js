@@ -1,14 +1,18 @@
 import get from 'lodash/get'
 import keyBy from 'lodash/keyBy'
+import compoundKeycodes from './data/compound-keycodes.json'
 export { loadKeymap } from './api'
 
 export function parseKeymap(keymap) {
   return { ...keymap, layers: keymap.layers.map(layer => layer.map(parseKeyBinding)) }
 }
 
+const COMPOUND_KEYCODES = new Set(compoundKeycodes)
+
 function parseKeyBinding(binding) {
   const paramsPattern = /\((.+)\)/
   function parse(code) {
+    if (COMPOUND_KEYCODES.has(code)) return { value: code, params: [] }
     const value = code.replace(paramsPattern, '')
     const params = ((code.match(paramsPattern) || [])[1] || '').split(',')
       .map(s => s.trim()).filter(Boolean).map(parse)

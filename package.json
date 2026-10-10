@@ -9,7 +9,7 @@
     "predev": "npm run kill",
     "dev": "node index.js",
     "kill": "powershell -command \"$c=@(Get-NetTCPConnection -LocalPort 8080,3000 -State Listen -ErrorAction SilentlyContinue); if($c){$c|Select-Object -ExpandProperty OwningProcess|Sort-Object -Unique|ForEach-Object{Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue}}\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",

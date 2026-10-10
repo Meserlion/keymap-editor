@@ -8,23 +8,30 @@ router.get('/keycodes', (req, res) => res.json(zmk.loadKeycodes()))
 router.get('/aliases', (req, res) => res.json(zmk.loadAliases()))
 router.get('/layout', (req, res) => res.json(zmk.loadLayout()))
 router.get('/keymap', (req, res) => res.json(zmk.loadKeymap()))
+function validate (res, validator, payload) {
+  try {
+    validator(payload)
+    return true
+  } catch (err) {
+    if (err.name === 'KeymapValidationError') {
+      res.status(400).json({ errors: err.errors })
+    } else {
+      res.status(500).send(String(err))
+    }
+    return false
+  }
+}
+
 router.post('/keymap', (req, res) => {
   const keymap = req.body
 
-  try {
-    zmk.validateKeymapJson(keymap)
-  } catch (err) {
-    if (err.name === 'KeymapValidationError') {
-      return res.status(400).json({ errors: err.errors })
-    }
-    return res.status(500).send(String(err))
-  }
+  if (!validate(res, zmk.validateKeymapJson, keymap)) return
 
   const layout = zmk.loadLayout()
   const generatedKeymap = zmk.generateKeymap(layout, keymap)
   const exportStdout = zmk.exportKeymap(generatedKeymap, 'flash' in req.query, err => {
     if (err) {
-      res.status(500).send(err)
+      res.status(500).send(String(err))
       return
     }
 
@@ -40,16 +47,18 @@ router.post('/keymap', (req, res) => {
 
 router.get('/macros', (req, res) => res.json(zmk.loadMacros()))
 router.post('/macros', (req, res) => {
+  if (!validate(res, zmk.validateMacrosJson, req.body)) return
   zmk.exportMacros(req.body, err => {
-    if (err) { res.status(500).send(err); return }
+    if (err) { res.status(500).send(String(err)); return }
     res.send()
   })
 })
 
 router.get('/combos', (req, res) => res.json(zmk.loadCombos()))
 router.post('/combos', (req, res) => {
+  if (!validate(res, zmk.validateCombosJson, req.body)) return
   zmk.exportCombos(req.body, err => {
-    if (err) { res.status(500).send(err); return }
+    if (err) { res.status(500).send(String(err)); return }
     res.send()
   })
 })
