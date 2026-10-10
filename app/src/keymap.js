@@ -23,7 +23,7 @@ function parseKeyBinding(binding) {
   return { value, params }
 }
 
-function encodeBindValue(parsed) {
+export function encodeBindValue(parsed) {
   const params = (parsed.params || []).map(encodeBindValue)
   const paramString = params.length > 0 ? `(${params.join(',')})` : ''
   return parsed.value + paramString
