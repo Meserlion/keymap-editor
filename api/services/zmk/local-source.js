@@ -88,6 +88,13 @@ function generateCombosDTS (combos) {
   return `    combos {\n        compatible = "zmk,combos";\n\n${blocks}\n    };`
 }
 
+function removeBlock (content, pattern) {
+  const existing = extractBlock(content, pattern)
+  if (!existing) return content
+  const before = content.slice(0, existing.start).replace(/\s+$/, '')
+  return before + content.slice(existing.end)
+}
+
 function mergeCombosInKeymap (content, combosDTS) {
   const existing = extractBlock(content, /\bcombos\s*\{/)
   if (existing) {
@@ -115,7 +122,7 @@ function exportCombos (combos, callback) {
       const combosDTS = generateCombosDTS(combos)
       const updated = combosDTS
         ? mergeCombosInKeymap(existing, combosDTS)
-        : existing
+        : removeBlock(existing, /\bcombos\s*\{/)
       fs.writeFileSync(keymapFilePath, updated)
     }
   }
@@ -190,7 +197,7 @@ function exportMacros (macros, callback) {
       const macrosDTS = generateMacrosDTS(macros)
       const updated = macrosDTS
         ? mergeMacrosInKeymap(existing, macrosDTS)
-        : existing
+        : removeBlock(existing, /\bmacros\s*\{/)
       fs.writeFileSync(keymapFilePath, updated)
     }
   }
@@ -280,11 +287,15 @@ function getActionsUrl () {
 function gitCommitPush (callback) {
   const date = new Date().toISOString().slice(0, 16).replace('T', ' ')
   const message = `Update keymap ${date}`
-  childProcess.exec(
-    `git add -A && git commit -m "${message}" && git push`,
-    { cwd: ZMK_PATH },
-    callback
-  )
+  childProcess.execFile('git', ['status', '--porcelain'], { cwd: ZMK_PATH }, (err, stdout) => {
+    if (err) return callback(err)
+    // Clean tree: don't fail on "nothing to commit", but still push in case
+    // an earlier push failed and commits are sitting ahead of the remote.
+    const command = stdout.trim()
+      ? `git add -A && git commit -m "${message}" && git push`
+      : 'git push'
+    childProcess.exec(command, { cwd: ZMK_PATH }, callback)
+  })
 }
 
 module.exports = {
@@ -299,5 +310,13 @@ module.exports = {
   exportCombos,
   loadAliases,
   getActionsUrl,
-  gitCommitPush
+  gitCommitPush,
+  // Pure helpers exported for unit tests
+  extractBlock,
+  removeBlock,
+  mergeKeymapCode,
+  generateCombosDTS,
+  mergeCombosInKeymap,
+  generateMacrosDTS,
+  mergeMacrosInKeymap
 }
